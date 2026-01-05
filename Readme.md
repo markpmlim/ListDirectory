@@ -33,8 +33,9 @@ This barebones demo shows how to use the kernel syscall **getdirentries64** from
 
 To execute the kernel syscall **getdirentries64**, the file directory must be opened with the kernel syscall
 
+```C
     int open(const char *path, int flags, int mode);
-
+```
 **getdirentries64** requires a *buffer* to be passed as one of its parameters.  On return, a number of dir entry records are read into this buffer; the register rax holds the number of bytes read into the buffer. Given below is the layout of a dir entry record.
 
 <br />
@@ -98,15 +99,15 @@ Number of bytes read: 224
 0x100001140: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
 <br />
 
-The first dirent record starts at the beginning of the buffer at 0x100001050. The value at offset 0x10 (**d_reclen**) is 0x0020 which is 32. This value will be used to compute the buffer offset to the next dirent. The 2 next bytes at record offset 0x12 is 01 00 is the value of **d_namlen**. These are followed by a single byte ( 0x04) which is the value of **d_type** (DT_DIR). The **d_name** is just 0x2e 00 (the dot directory).
+The first dirent record starts at the beginning of the buffer at 0x100001050. The value at buffer offset 0x10 (**d_reclen**) is 0x0020 which is 32. This value will be used to compute the buffer offset to the next dirent. The 2 next bytes at record offset 0x12 is 01 00 which is the value of **d_namlen**. These are followed by a single byte ( 0x04) which is the value of **d_type** (DT_DIR). The **d_name** field is just 0x2e 00 (the dot directory).
 
-The second dirent record starts at 0x100001070 (0x100001050 + 0x0020). This is the double-dot (..) directory. And the third dirent record is 0x100001070 + 0x0020 = 0x100001090 since the value at 0x100001080 (**d_reclen** of previous dirent record) is 0x0020. The value at 0x1000010a0 (offset 0x10 from the start of this dirent record) is 0x0028 (40). This is the **d_reclen** of the third dirent record. The 2 bytes (0a 00) that followed is the **d_namelen** of this dirent record. The single byte value following value is 0x08 indicating this is a regular file (DT_REG). The rest of the bytes is a null-terminated char string "Input1.txt".
+The second dirent record starts at 0x100001070 (0x100001050 + 0x0020). This is the double-dot (..) directory. And the third dirent record is 0x100001070 + 0x0020 = 0x100001090 since the value at 0x100001080 (**d_reclen** of second dirent record) is 0x0020. The value at 0x1000010a0 (offset 0x10 from the start of this dirent record) is 0x0028 (40). This is the **d_reclen** of the third dirent record. The 2 bytes (0a 00) that followed are the **d_namelen** of this dirent record. The single byte value that follows is 0x08 indicating this is a regular file (DT_REG). The rest of the bytes is a null-terminated char string "Input1.txt".
 
-The fourth direntry record starts at  0x100001090 + 0x28 = 0x1000010b8 with the bytes "36 e7 79 00 00 00 00 00" (0x000000000079e736) which is the **d_ino** value. The reader will have to check out the rest of the direntries. Please note that the directory being listed should consists of more than a few direntries, preferrably 10-20.
+The fourth direntry record starts at  0x100001090 + 0x28 = 0x1000010b8 with the bytes "36 e7 79 00 00 00 00 00" (0x000000000079e736) which is the **d_ino** value. The reader will have to check out the rest of the direntries. Please note that the directory being listed should consists of more than a few direntries, preferrably 10-20. Their **d_name**s should not be too long.
 
-**getdirentries64** keeps track of the number of directory entries read by writing into the variable **posn**. When all dirent records have been read, the kernel syscall writes the value 0x7fffffff into this quad word storage area.
+Finally, **getdirentries64** keeps track of the number of directory entries read by writing into the variable **posn**. When all dirent records have been read, the kernel syscall writes the value 0x7fffffff into this quad word storage area.
 
-According to information found on the Internet, C functions calls like readdir(DIR *dirp) actually calls an internal kernel call **__getdirentries64**.
+According to information found on the Internet, C functions calls like **readdir(DIR *dirp)** actually calls an internal kernel call **__getdirentries64**.
 
 <br />
 <br />
