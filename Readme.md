@@ -7,21 +7,26 @@
 
 The kernel syscall **getdirentries**
 
+```C
     int getdirentries(int fd, char *buf, int nbytes, long *basep);
+```
 
 is deprecated and replaced with 
 
+```C
     user_ssize_t getdirentries64(int fd, void *buf, user_size_t bufsize, off_t *position);
+```
 
 The C library functions
 
+```C
     syscall(int number, ...) and int __syscall(quad_t number, ...);
-    
+```
+
 are also deprecated as of macOS 10.12.
 
 This barebones demo shows how to use the kernel syscall **getdirentries64** from within an assembly language program.
 
-<br />
 <br />
 
 **Details**
@@ -35,7 +40,7 @@ To execute the kernel syscall **getdirentries64**, the file directory must be op
 <br />
 <br />
 
-
+```C
     struct dirent {                 // when _DARWIN_FEATURE_64_BIT_INODE is defined
         ino_t      d_ino;           // file number of entry (8 bytes)
         __uint64_t d_seekoff;       // seek offset (optional, used by servers) (8 bytes)
@@ -44,7 +49,7 @@ To execute the kernel syscall **getdirentries64**, the file directory must be op
         __uint8_t  d_type;          // file type, see below (1 byte)
         char       d_name[1024];    // name must be no longer than this  - padded to 4-byte boundary
     };
-
+```
 
 The size of this buffer should not be too small because the **maximum** size of a directory entry record is **1048** bytes. Obviously, it will be a sheer waste of valuable memory if the size of each directory entry record returned is fixed at 1048. Instead, the macOS kernel will return the minimum neccessary to encapsulate all information. The actual size of  last field, **d_name**, varies from 1 to 1023 excluding the null terminator. In other words, the sizes of each direntry record read into the buffer may differ. For the "." or ".." directory entries, their sizes are 32 bytes.
 
@@ -53,25 +58,45 @@ The reader can experiment by setting the **bufferSize** equate to 256. In this c
 Given below is a sample memory dump after reading 224 bytes into a 256-byte buffer.
 
 Number of bytes read: 224
+<br />
 (lldb) p &buffer
+<br />
 (void **) $0 = 0x0000000100001050
+<br />
 (lldb) x -c256 0x0000000100001050
+<br />
 0x100001050: 09 d5 76 00 00 00 00 00 00 00 00 00 00 00 00 00  ..v.............
+<br />
 0x100001060: 20 00 01 00 04 2e 00 00 00 00 00 00 00 00 00 00   ...............
+<br />
 0x100001070: 90 2a 09 00 00 00 00 00 00 00 00 00 00 00 00 00  .*..............
+<br />
 0x100001080: 20 00 02 00 04 2e 2e 00 00 00 00 00 00 00 00 00   ...............
+<br />
 0x100001090: 0a f4 79 00 00 00 00 00 00 00 00 00 00 00 00 00  ..y.............
+<br />
 0x1000010a0: 28 00 0a 00 08 49 6e 70 75 74 31 2e 74 78 74 00  (....Input1.txt.
+<br />
 0x1000010b0: 00 00 00 00 00 00 00 00 36 e7 79 00 00 00 00 00  ........6.y.....
+<br />
 0x1000010c0: 00 00 00 00 00 00 00 00 28 00 09 00 08 63 61 6c  ........(....cal
+<br />
 0x1000010d0: 6c 73 75 6d 2e 73 00 00 00 00 00 00 00 00 00 00  lsum.s..........
+<br />
 0x1000010e0: 18 f4 79 00 00 00 00 00 00 00 00 00 00 00 00 00  ..y.............
+<br />
 0x1000010f0: 28 00 0a 00 08 49 6e 70 75 74 30 2e 74 78 74 00  (....Input0.txt.
+<br />
 0x100001100: 00 00 00 00 00 00 00 00 74 e7 7b 00 00 00 00 00  ........t.{.....
+<br />
 0x100001110: 00 00 00 00 00 00 00 00 28 00 0a 00 08 70 72 69  ........(....pri
+<br />
 0x100001120: 6e 74 64 69 72 2e 63 00 00 00 00 00 00 00 00 00  ntdir.c.........
+<br />
 0x100001130: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+<br />
 0x100001140: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+<br />
 
 The first dirent record starts at the beginning of the buffer at 0x100001050. The value at offset 0x10 (**d_reclen**) is 0x0020 which is 32. This value will be used to compute the buffer offset to the next dirent. The 2 next bytes at record offset 0x12 is 01 00 is the value of **d_namlen**. These are followed by a single byte ( 0x04) which is the value of **d_type** (DT_DIR). The **d_name** is just 0x2e 00 (the dot directory).
 
