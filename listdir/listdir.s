@@ -133,7 +133,7 @@ next_entry:
 
 .done:
 # int close(int fd);
-    movq    -36(%rbp), %rdi             
+    movq    -40(%rbp), %rdi             
     movq    $sys_close, %rax
     syscall
 
@@ -155,4 +155,5 @@ abort:
     movq    $1, %rdi                  # exit status code 1
     movq    $sys_exit, %rax
     syscall
+
 
